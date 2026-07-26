@@ -1,23 +1,23 @@
-import { kv } from '@vercel/kv';
+let cachedData = null;
+let lastFetchTime = 0;
+const CACHE_TTL = 8 * 60 * 60 * 1000; // 8 часов (ровно 3 запроса в сутки)
 
 export default async function handler(req, res) {
-    if (req.headers['x-vercel-cron'] === '1') {
+    const now = Date.now();
+    
+    if (!cachedData || (now - lastFetchTime) > CACHE_TTL) {
         try {
             const response = await fetch('https://api-v2.sp-today.com/api-dashboard', {
                 headers: { 'X-API-Key': '4cdaa702ba85d7e625f341163a901529' }
             });
-            const data = await response.json();
-            await kv.set('latest_rates', data);
-            return res.status(200).json({ success: true });
+            cachedData = await response.json();
+            lastFetchTime = now;
         } catch (error) {
-            return res.status(500).json({ error: error.message });
+            if (!cachedData) {
+                return res.status(500).json({ error: 'Failed to fetch rates' });
+            }
         }
     }
 
-    try {
-        const data = await kv.get('latest_rates');
-        return res.status(200).json(data || { error: 'No data yet' });
-    } catch (error) {
-        return res.status(500).json({ error: 'Server error' });
-    }
+    return res.status(200).json(cachedData);
 }
