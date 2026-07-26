@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     
     if (!cachedData || (now - lastFetchTime) > CACHE_TTL) {
         try {
-            const response = await fetch('https://api-v2.sp-today.com/api-dashboard', {
+            const response = await fetch('https://api-v2.sp-today.com/', {
                 headers: { 'X-API-Key': '4cdaa702ba85d7e625f341163a901529' }
             });
             cachedData = await response.json();
